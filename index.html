@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GET Parameter Viewer</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: start;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-top: 20px;
+            color: #111;
+        }
+
+        #output {
+            width: 90%;
+            max-width: 800px;
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #0078ff;
+        }
+
+        .list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .list li {
+            padding: 10px;
+            background-color: #f3f6fa;
+            border: 1px solid #e0e6ed;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .list li:last-child {
+            margin-bottom: 0;
+        }
+
+        p {
+            font-size: 1rem;
+            margin: 5px 0;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .section h2 {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizador de Parámetro GET</h1>
+    <div id="output"></div>
+
+    <script>
+        // Obtener el parámetro "datos" de la URL
+        const params = new URLSearchParams(window.location.search);
+        const encodedDatos = params.get('datos');
+
+        // Referencia al elemento de salida
+        const outputElement = document.getElementById('output');
+
+        if (encodedDatos) {
+            try {
+                // Decodificar el parámetro URI
+                const decodedDatos = decodeURIComponent(encodedDatos);
+
+                // Reparar el JSON si contiene múltiples objetos separados incorrectamente
+                const fixedData = decodedDatos.replace(/}\s*{/g, '},{');
+                const wrappedData = `[${fixedData}]`;
+
+                // Parsear los datos como JSON
+                const parsedData = JSON.parse(wrappedData);
+
+                // Priorizar el orden: Usuario, Registro Diario, Registro de Crisi
+                const userInfo = {};
+                const dailyRecord = {};
+                const crisisRecord = {};
+
+                parsedData.forEach(dataBlock => {
+                    for (const [key, value] of Object.entries(dataBlock)) {
+                        if (key === "Nom" || key === "Edat" || key === "Sexe" || key === "MPID" || key === "CAP") {
+                            userInfo[key] = value;
+                        } else if (key.startsWith("Registre diari")) {
+                            dailyRecord[key] = value;
+                        } else if (key.startsWith("Registre crisi")) {
+                            crisisRecord[key] = value;
+                        }
+                    }
+                });
+
+                // Mostrar información del usuario (en orden específico)
+                const userOrder = ["Nom", "Sexe", "Edat", "MPID", "CAP"];
+                const userLabels = {
+                    Nom: "Nom",
+                    Sexe: "Sexe",
+                    Edat: "Edat",
+                    MPID: "MPID",
+                    CAP: "CAP"
+                };
+
+                if (Object.keys(userInfo).length > 0) {
+                    const section = document.createElement('div');
+                    section.className = 'section';
+
+                    const title = document.createElement('h2');
+                    title.textContent = 'Informació de l\'Usuari';
+                    section.appendChild(title);
+
+                    const list = document.createElement('ul');
+                    list.className = 'list';
+
+                    userOrder.forEach(key => {
+                        if (userInfo[key]) {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `${userLabels[key]}: ${userInfo[key]}`;
+                            list.appendChild(listItem);
+                        }
+                    });
+
+                    section.appendChild(list);
+                    outputElement.appendChild(section);
+                }
+
+                // Mostrar registro diario
+                for (const [key, value] of Object.entries(dailyRecord)) {
+                    const section = document.createElement('div');
+                    section.className = 'section';
+
+                    const title = document.createElement('h2');
+                    title.textContent = key;
+                    section.appendChild(title);
+
+                    const list = document.createElement('ul');
+                    list.className = 'list';
+
+                    value.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = item;
+                        list.appendChild(listItem);
+                    });
+
+                    section.appendChild(list);
+                    outputElement.appendChild(section);
+                }
+
+                // Mostrar registro de crisi
+                for (const [key, value] of Object.entries(crisisRecord)) {
+                    const section = document.createElement('div');
+                    section.className = 'section';
+
+                    const title = document.createElement('h2');
+                    title.textContent = key;
+                    section.appendChild(title);
+
+                    const list = document.createElement('ul');
+                    list.className = 'list';
+
+                    value.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = item;
+                        list.appendChild(listItem);
+                    });
+
+                    section.appendChild(list);
+                    outputElement.appendChild(section);
+                }
+            } catch (error) {
+                outputElement.textContent = "Error al interpretar los datos: " + error.message;
+            }
+        } else {
+            outputElement.textContent = "El parámetro 'datos' no está presente en la URL.";
+        }
+    </script>
+</body>
+</html>
